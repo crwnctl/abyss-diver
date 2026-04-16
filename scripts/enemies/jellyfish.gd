@@ -2,7 +2,8 @@ extends CharacterBody3D
 
 enum AiMode {
 	ROAM,
-	TRACK
+	TRACK,
+	AMBUSH
 }
 
 @export var ai_mode: AiMode = AiMode.ROAM
@@ -12,6 +13,8 @@ enum AiMode {
 @export var visual_bob_speed: float = 2.1
 @export var visual_sway_amount: float = 0.12
 @export var visual_sway_speed: float = 1.5
+@export var ambush_offset_distance: float = 6.0
+@export var hit_radius: float = 1.05
 @export var start_from_node: String = "outer_1_e"
 @export var start_to_node: String = "outer_1_ne"
 @export var start_progress: float = 0.0
@@ -30,6 +33,7 @@ var current_move_direction: Vector3 = Vector3.FORWARD
 func _ready() -> void:
 	randomize()
 	player = get_tree().get_first_node_in_group("player") as Node3D
+	hit_area.body_entered.connect(_on_hit_area_body_entered)
 	route_network = get_tree().get_first_node_in_group("route_network")
 	if route_network == null:
 		await get_tree().process_frame
@@ -50,16 +54,27 @@ func _physics_process(delta: float) -> void:
 	if route_network == null or current_node_id == "" or next_node_id == "":
 		return
 
-	var speed := track_speed if ai_mode == AiMode.TRACK else roam_speed
+	var speed: float = track_speed if ai_mode != AiMode.ROAM else roam_speed
 	_advance_along_route(delta, speed)
 	_try_contact_damage()
 
 func _try_contact_damage() -> void:
+	if is_instance_valid(player) and player.global_position.distance_to(global_position) <= hit_radius:
+		_damage_player(player)
+		return
 	for body in hit_area.get_overlapping_bodies():
 		if body.is_in_group("player") and body.has_node("PlayerStats"):
-			var stats: Node = body.get_node("PlayerStats")
-			stats.kill()
+			_damage_player(body)
 			break
+
+func _on_hit_area_body_entered(body: Node) -> void:
+	if body.is_in_group("player"):
+		_damage_player(body)
+
+func _damage_player(body: Node) -> void:
+	if body.has_node("PlayerStats"):
+		var stats: Node = body.get_node("PlayerStats")
+		stats.kill()
 
 func _advance_along_route(delta: float, speed: float) -> void:
 	var remaining_distance: float = speed * delta
@@ -76,15 +91,21 @@ func _advance_along_route(delta: float, speed: float) -> void:
 			var reached_node: String = next_node_id
 			var previous_node: String = current_node_id
 			current_node_id = reached_node
-			if ai_mode == AiMode.TRACK and is_instance_valid(player):
-				next_node_id = route_network.pick_neighbor_toward_target(previous_node, reached_node, player.global_position)
-			else:
-				next_node_id = route_network.pick_random_neighbor(previous_node, reached_node)
+			next_node_id = _pick_next_node(previous_node, reached_node)
 			segment_distance = 0.0
 			if next_node_id == "":
 				next_node_id = previous_node
 
 	_update_route_transform()
+
+func _pick_next_node(previous_node: String, reached_node: String) -> String:
+	if ai_mode == AiMode.TRACK and is_instance_valid(player):
+		return route_network.pick_neighbor_toward_target(previous_node, reached_node, player.global_position)
+	if ai_mode == AiMode.AMBUSH and is_instance_valid(player):
+		var move_direction: Vector3 = player.get("current_move_direction") if player.get("current_move_direction") is Vector3 else -player.global_transform.basis.z
+		var target_position: Vector3 = player.global_position + move_direction.normalized() * ambush_offset_distance
+		return route_network.pick_neighbor_toward_target(previous_node, reached_node, target_position)
+	return route_network.pick_random_neighbor(previous_node, reached_node)
 
 func _update_route_transform() -> void:
 	if route_network == null or current_node_id == "" or next_node_id == "":

@@ -7,3 +7,5 @@ res://scripts/ui/minimap_controller.gd
 res://scripts/systems/route_network.gd
 res://scenes/collectibles/AirBubble.tscn
 res://scenes/enemies/Jellyfish.tscn
+res://scenes/collectibles/GoldRelic.tscn
+res://scripts/collectibles/gold_relic.gd

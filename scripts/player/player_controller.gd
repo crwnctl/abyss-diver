@@ -245,8 +245,6 @@ func _get_turn_right_vector() -> Vector3:
 	return Vector3.RIGHT
 
 func _capture_preselected_turn() -> void:
-	if selected_turn_label != "":
-		return
 	if Input.is_action_pressed("move_forward") and available_turn_options.has("up"):
 		selected_turn_label = "up"
 		return

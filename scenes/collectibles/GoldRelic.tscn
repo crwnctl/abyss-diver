@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3 uid="uid://gold_relic_scene"]
+
+[ext_resource type="Script" path="res://scripts/collectibles/gold_relic.gd" id="1_script"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_gold_relic"]
+radius = 0.48
+
+[sub_resource type="SphereMesh" id="SphereMesh_gold_relic"]
+radius = 0.34
+height = 0.68
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gold_relic"]
+albedo_color = Color(0.95, 0.8, 0.22, 1)
+emission_enabled = true
+emission = Color(1, 0.84, 0.22, 1)
+emission_energy_multiplier = 1.25
+metallic = 0.55
+roughness = 0.16
+
+[node name="GoldRelic" type="Area3D"]
+groups=["relic"]
+monitoring = true
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_gold_relic")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+layers = 3
+mesh = SubResource("SphereMesh_gold_relic")
+surface_material_override/0 = SubResource("StandardMaterial3D_gold_relic")

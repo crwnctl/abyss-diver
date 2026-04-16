@@ -68,7 +68,8 @@ orbit_speed = 0.42
 camera_fov = 38.0
 
 [node name="MiniMapViewport" type="SubViewport" parent="."]
-size = Vector2i(400, 400)
+size = Vector2i(288, 288)
+transparent_bg = true
 
 [node name="MiniMapCamera" type="Camera3D" parent="MiniMapViewport"]
 
@@ -80,7 +81,8 @@ surface_material_override/0 = SubResource("StandardMaterial3D_minimap_marker")
 
 [node name="MazeBlockout" type="Node3D" parent="."]
 script = ExtResource("5_route_network_script")
-outer_radius = 8.0
+outer_radius = 6.0
+layer_spacing = 8.0
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
 

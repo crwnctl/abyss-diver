@@ -25,7 +25,7 @@ script = ExtResource("1_script")
 shape = SubResource("SphereShape3D_airbubble")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-layers = 2
+layers = 3
 mesh = SubResource("SphereMesh_airbubble")
 surface_material_override/0 = SubResource("StandardMaterial3D_airbubble")
 
