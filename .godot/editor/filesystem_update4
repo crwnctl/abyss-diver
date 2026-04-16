@@ -1,7 +1,3 @@
 res://scripts/player/player_controller.gd
-res://scripts/collectibles/air_bubble.gd
 res://scripts/systems/main.gd
-res://scripts/systems/player_stats.gd
 res://scripts/ui/hud.gd
-res://scripts/enemies/jellyfish.gd
-res://scripts/ui/minimap.gd

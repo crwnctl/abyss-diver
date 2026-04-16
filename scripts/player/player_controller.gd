@@ -12,32 +12,37 @@ extends CharacterBody3D
 @onready var player_stats = $PlayerStats
 
 var pitch: float = 0.0
+var mouse_delta: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	Input.use_accumulated_input = false
+	camera.current = true
+	camera.cull_mask = 1
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		rotation.y -= event.relative.x * mouse_sensitivity
-		pitch -= event.relative.y * mouse_sensitivity
-		pitch = clamp(pitch, deg_to_rad(-80), deg_to_rad(80))
-		head.rotation.x = pitch
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		mouse_delta += event.relative
 
 	if event.is_action_pressed("ui_cancel"):
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
-func _physics_process(delta: float) -> void:
-	player_stats.drain_oxygen(delta)
-
-	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
-	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+func _physics_process(delta: float) -> void:
+	_apply_mouse_look()
+	player_stats.drain_oxygen(delta)
 
-	var move_dir := Vector3.ZERO
-	move_dir += -transform.basis.z * input_2d.y
-	move_dir += transform.basis.x * input_2d.x
-	move_dir = move_dir.normalized()
+	var input_x := Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+	var input_z := Input.get_action_strength("move_forward") - Input.get_action_strength("move_back")
+
+	var forward: Vector3 = -camera.global_transform.basis.z
+	var right: Vector3 = camera.global_transform.basis.x
+	forward = forward.normalized()
+	right = right.normalized()
+
+	var move_dir: Vector3 = (right * input_x) + (forward * input_z)
 
 	var current_speed := move_speed
 	if Input.is_action_pressed("boost"):
@@ -49,8 +54,12 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_pressed("move_down"):
 		vertical_dir -= 1.0
 
+	move_dir += Vector3.UP * vertical_dir
+	if move_dir.length() > 1.0:
+		move_dir = move_dir.normalized()
+
 	var target_velocity := move_dir * current_speed
-	target_velocity.y = vertical_dir * vertical_speed
+	target_velocity.y *= vertical_speed / max(current_speed, 0.001)
 
 	velocity = velocity.lerp(target_velocity, acceleration * delta)
 
@@ -60,3 +69,17 @@ func _physics_process(delta: float) -> void:
 	velocity.z = lerp(velocity.z, target_velocity.z, (acceleration + water_drag) * delta)
 
 	move_and_slide()
+
+func _apply_mouse_look() -> void:
+	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+		mouse_delta = Vector2.ZERO
+		return
+
+	if mouse_delta == Vector2.ZERO:
+		return
+
+	rotation.y -= mouse_delta.x * mouse_sensitivity
+	pitch -= mouse_delta.y * mouse_sensitivity
+	pitch = clamp(pitch, deg_to_rad(-80.0), deg_to_rad(80.0))
+	head.rotation.x = pitch
+	mouse_delta = Vector2.ZERO

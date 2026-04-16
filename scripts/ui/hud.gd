@@ -6,10 +6,15 @@ extends CanvasLayer
 @onready var oxygen_bar: ProgressBar = $MarginContainer/VBoxContainer/ProgressBar
 @onready var low_oxygen_label: Label = $MarginContainer/VBoxContainer/LowOxygenLabel
 @onready var oxygen_depleted_label: Label = $CenterContainer/OxygenDepletedLabel
-@onready var minimap: Control = $TopRightMargin/MinimapPanel/Minimap
+@onready var minimap_panel: Panel = $MiniMapPanel
+@onready var minimap_texture_rect: TextureRect = $MiniMapPanel/MiniMapTextureRect
 
 var low_oxygen_active: bool = false
 var warning_time: float = 0.0
+
+func _ready() -> void:
+	_set_mouse_ignore(self)
+	_configure_minimap_panel()
 
 func _process(delta: float) -> void:
 	warning_time += delta
@@ -36,5 +41,21 @@ func set_oxygen(current: float, max_oxygen: float) -> void:
 func show_out_of_oxygen() -> void:
 	oxygen_depleted_label.visible = true
 
-func set_minimap_references(player: Node3D, jellyfish_nodes: Array, bubble_nodes: Array) -> void:
-	minimap.set_tracking(player, jellyfish_nodes, bubble_nodes)
+func set_minimap_texture(texture: Texture2D) -> void:
+	minimap_texture_rect.texture = texture
+
+func _configure_minimap_panel() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.03, 0.1, 0.12, 0.28)
+	style.border_color = Color(0.42, 0.83, 0.9, 0.7)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.2)
+	style.shadow_size = 10
+	minimap_panel.add_theme_stylebox_override("panel", style)
+
+func _set_mouse_ignore(node: Node) -> void:
+	for child in node.get_children():
+		if child is Control:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_mouse_ignore(child)

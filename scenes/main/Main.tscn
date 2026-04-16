@@ -1,10 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=10 format=3 uid="uid://main_scene"]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/systems/main.gd" id="2_main_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
-[ext_resource type="PackedScene" path="res://scenes/collectibles/AirBubble.tscn" id="4_air_bubble"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/Jellyfish.tscn" id="5_jellyfish"]
+[ext_resource type="Script" path="res://scripts/ui/minimap_controller.gd" id="4_minimap_controller_script"]
 
 [sub_resource type="Environment" id="Environment_underwater"]
 background_mode = 1
@@ -17,6 +16,30 @@ adjustment_enabled = true
 adjustment_brightness = 0.95
 adjustment_contrast = 1.05
 adjustment_saturation = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_minimap_marker"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.92, 0.99, 1, 0.82)
+emission_enabled = true
+emission = Color(0.25, 0.82, 1, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_minimap_marker"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_layer1"]
+albedo_color = Color(0.13, 0.24, 0.22, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_layer2"]
+albedo_color = Color(0.15, 0.26, 0.39, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_layer3"]
+albedo_color = Color(0.18, 0.41, 0.47, 1)
+roughness = 0.9
 
 [node name="Main" type="Node3D"]
 script = ExtResource("2_main_script")
@@ -31,140 +54,590 @@ light_energy = 0.5
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
+[node name="MiniMapRig" type="Node3D" parent="."]
+script = ExtResource("4_minimap_controller_script")
+player_path = NodePath("../Player")
+camera_path = NodePath("../MiniMapViewport/MiniMapCamera")
+marker_path = NodePath("../PlayerMarker")
+map_center = Vector3(0, 0, 0)
+camera_height = 55.0
+orthographic_size = 40.0
+
+[node name="MiniMapViewport" type="SubViewport" parent="."]
+size = Vector2i(400, 400)
+
+[node name="MiniMapCamera" type="Camera3D" parent="MiniMapViewport"]
+
+[node name="PlayerMarker" type="MeshInstance3D" parent="."]
+layers = 2
+cast_shadow = 0
+mesh = SubResource("SphereMesh_minimap_marker")
+surface_material_override/0 = SubResource("StandardMaterial3D_minimap_marker")
+
 [node name="MazeBlockout" type="Node3D" parent="."]
 
-[node name="Floor" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-size = Vector3(24, 1, 24)
+[node name="Layer1" type="Node3D" parent="MazeBlockout"]
+
+[node name="L1SpawnFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(0, -0.5, 0)
+size = Vector3(10, 1, 10)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="SpawnRoomWallNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -6)
+[node name="L1SpawnNorthWall" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(0, 2, -5)
 size = Vector3(10, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="SpawnRoomWallSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -14)
+[node name="L1SpawnSouthWall" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(0, 2, 5)
 size = Vector3(10, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="SpawnRoomWallWest" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.5, -10)
+[node name="L1SpawnWestNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-5, 2, -3.5)
+size = Vector3(1, 4, 3)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1SpawnWestSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-5, 2, 3.5)
+size = Vector3(1, 4, 3)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1SpawnEastNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(5, 2, -3.5)
+size = Vector3(1, 4, 3)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1SpawnEastSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(5, 2, 3.5)
+size = Vector3(1, 4, 3)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftCorridorFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-12, -0.5, 0)
+size = Vector3(14, 1, 4)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftCorridorNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-12, 2, -2)
+size = Vector3(14, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftCorridorSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-12, 2, 2)
+size = Vector3(14, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftBendFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-18, -0.5, -8)
+size = Vector3(4, 1, 12)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftBendWest" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-20, 2, -8)
+size = Vector3(1, 4, 12)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="L1LeftBendEastUpper" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-16, 2, -6)
 size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="SpawnRoomWallEastSplit1" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1.5, -12.5)
-size = Vector3(1, 4, 3)
+[node name="L1LeftConnectorFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-15, -0.5, -14)
+size = Vector3(2, 1, 4)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="SpawnRoomWallEastSplit2" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1.5, -7.5)
-size = Vector3(1, 4, 3)
+[node name="L1LeftRoomFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-10, -0.5, -14)
+size = Vector3(8, 1, 8)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="LeftCorridorNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.5, -6)
-size = Vector3(10, 4, 1)
-use_collision = true
-
-[node name="LeftCorridorSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.5, -10)
-size = Vector3(10, 4, 1)
-use_collision = true
-
-[node name="LeftCorridorFarWall" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 1.5, -8)
-size = Vector3(1, 4, 4)
-use_collision = true
-
-[node name="RightCorridorNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.5, -6)
+[node name="L1LeftRoomNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-10, 2, -18)
 size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="RightCorridorSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.5, -10)
+[node name="L1LeftRoomSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-10, 2, -10)
 size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="CentralChamberNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 2)
-size = Vector3(16, 4, 1)
+[node name="L1LeftRoomEast" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(-6, 2, -14)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="CentralChamberSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, -4)
-size = Vector3(16, 4, 1)
+[node name="L1RightCorridorFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(12, -0.5, 0)
+size = Vector3(14, 1, 4)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="CentralChamberEast" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.5, -1)
-size = Vector3(1, 4, 6)
+[node name="L1RightCorridorNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(12, 2, -2)
+size = Vector3(14, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="CentralChamberWest" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.5, -1)
-size = Vector3(1, 4, 6)
+[node name="L1RightCorridorSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(12, 2, 2)
+size = Vector3(14, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="UpwardShaftWallsNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 5, 9)
-size = Vector3(4, 10, 1)
+[node name="L1DeadBranchFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(20, -0.5, -6)
+size = Vector3(4, 1, 8)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="UpwardShaftWallsSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 5, 5)
-size = Vector3(4, 10, 1)
+[node name="L1DeadBranchWest" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(18, 2, -6)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="UpwardShaftWallsEast" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 5, 7)
-size = Vector3(1, 10, 4)
+[node name="L1DeadBranchEast" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(22, 2, -9)
+size = Vector3(1, 4, 2)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="UpwardShaftWallsWest" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 5, 7)
-size = Vector3(1, 10, 4)
+[node name="L1DeadPocketFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(22, -0.5, -6)
+size = Vector3(6, 1, 6)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="DeadEndRoomNorth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 1.5, 2)
+[node name="L1DeadPocketNorth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(22, 2, -9)
 size = Vector3(6, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="DeadEndRoomSouth" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 1.5, -2)
+[node name="L1DeadPocketSouth" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(22, 2, -3)
 size = Vector3(6, 4, 1)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="DeadEndRoomEast" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1.5, 0)
-size = Vector3(1, 4, 4)
+[node name="L1DeadPocketEast" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(25, 2, -6)
+size = Vector3(1, 4, 6)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="DeadEndRoomWest" type="CSGBox3D" parent="MazeBlockout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.5, 0)
-size = Vector3(1, 4, 4)
+[node name="L1ShaftABranchFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(20, -0.5, 3)
+size = Vector3(4, 1, 2)
+material = SubResource("StandardMaterial3D_layer1")
 use_collision = true
 
-[node name="BubbleCorridorLeft" parent="." instance=ExtResource("4_air_bubble")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 1.1, -8)
+[node name="L1ShaftABranchWest" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(18, 2, 6)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
 
-[node name="BubbleSpawnRoom" parent="." instance=ExtResource("4_air_bubble")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 1.1, -10)
+[node name="L1ShaftABranchEast" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(22, 2, 6)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
 
-[node name="BubbleCentralChamber" parent="." instance=ExtResource("4_air_bubble")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.1, -1)
+[node name="L1SouthConnectorFloor" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(0, -0.5, 6)
+size = Vector3(4, 1, 2)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
 
-[node name="BubbleShaftBase" parent="." instance=ExtResource("4_air_bubble")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 6)
+[node name="L1Landmark" type="CSGBox3D" parent="MazeBlockout/Layer1"]
+position = Vector3(0, 1.5, -3.5)
+size = Vector3(3, 3, 1)
+material = SubResource("StandardMaterial3D_layer1")
 
-[node name="BubbleDeadEnd" parent="." instance=ExtResource("4_air_bubble")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 1.1, 0)
+[node name="Layer2" type="Node3D" parent="MazeBlockout"]
 
-[node name="Jellyfish" parent="." instance=ExtResource("5_jellyfish")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 1.3, -1)
+[node name="L2CentralFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(0, 9.5, -1)
+size = Vector3(16, 1, 14)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(0, 13, -8)
+size = Vector3(16, 6, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralSouthWest" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-5, 13, 8)
+size = Vector3(6, 6, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralSouthEast" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(5, 13, 8)
+size = Vector3(6, 6, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralWestNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-8, 13, -5)
+size = Vector3(1, 6, 6)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralWestSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-8, 13, 5)
+size = Vector3(1, 6, 6)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralEastNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(8, 13, -5)
+size = Vector3(1, 6, 6)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2CentralEastSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(8, 13, 5)
+size = Vector3(1, 6, 6)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestConnectorFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-14, 9.5, 0)
+size = Vector3(12, 1, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestConnectorNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-14, 12, -2)
+size = Vector3(12, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestConnectorSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-14, 12, 2)
+size = Vector3(12, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestRoomFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-24, 9.5, 0)
+size = Vector3(8, 1, 8)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestRoomNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-24, 12, -4)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestRoomSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-24, 12, 4)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2WestRoomWest" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-28, 12, 0)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastConnectorFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(14, 9.5, 0)
+size = Vector3(12, 1, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastConnectorNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(14, 12, -2)
+size = Vector3(12, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastConnectorSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(14, 12, 2)
+size = Vector3(12, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastLaneFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(23, 9.5, 0)
+size = Vector3(6, 1, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastLaneNorth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(24, 12, -2)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2EastLaneSouth" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(24, 12, 2)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2ShaftCConnectorFloor" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-20, 9.5, -5)
+size = Vector3(4, 1, 6)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2ShaftCConnectorWest" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-22, 12, -6)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2ShaftCConnectorEast" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(-18, 12, -6)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="L2Landmark" type="CSGBox3D" parent="MazeBlockout/Layer2"]
+position = Vector3(0, 13, 0)
+size = Vector3(2, 6, 2)
+material = SubResource("StandardMaterial3D_layer2")
+
+[node name="Layer3" type="Node3D" parent="MazeBlockout"]
+
+[node name="L3UpperLandingFloor" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(30, 19.5, 0)
+size = Vector3(4, 1, 8)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperLandingNorth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(28, 22, -4)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperLandingSouth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(28, 22, 4)
+size = Vector3(8, 4, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperLandingEast" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(32, 22, 0)
+size = Vector3(1, 4, 8)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperPathFloor" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(17, 19.5, 0)
+size = Vector3(18, 1, 4)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperPathNorth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(16, 22, -2)
+size = Vector3(16, 4, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3UpperPathSouth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(16, 22, 2)
+size = Vector3(16, 4, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3OverlookFloor" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(2, 19.5, 0)
+size = Vector3(10, 1, 10)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3OverlookWest" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(-3, 22, 0)
+size = Vector3(1, 5, 10)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3OverlookEastNorth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(7, 22, -3.5)
+size = Vector3(1, 5, 3)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3OverlookEastSouth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(7, 22, 3.5)
+size = Vector3(1, 5, 3)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthBranchFloor" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(2, 19.5, -10)
+size = Vector3(4, 1, 10)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthBranchWest" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(0, 22, -10)
+size = Vector3(1, 4, 10)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthBranchEast" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(4, 22, -10)
+size = Vector3(1, 4, 10)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthPocketFloor" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(2, 19.5, -18)
+size = Vector3(6, 1, 6)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthPocketNorth" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(2, 22, -21)
+size = Vector3(6, 4, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthPocketWest" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(-1, 22, -18)
+size = Vector3(1, 4, 6)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3NorthPocketEast" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(5, 22, -18)
+size = Vector3(1, 4, 6)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="L3Landmark" type="CSGBox3D" parent="MazeBlockout/Layer3"]
+position = Vector3(2, 23.5, 0)
+size = Vector3(6, 1, 2)
+material = SubResource("StandardMaterial3D_layer3")
+
+[node name="Shafts" type="Node3D" parent="MazeBlockout"]
+
+[node name="ShaftA_West" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(18, 5, 6)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="ShaftA_East" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(22, 5, 6)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="ShaftA_North" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(20, 5, 4)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="ShaftA_South" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(20, 5, 8)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer1")
+use_collision = true
+
+[node name="ShaftB_West" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(26, 15, 0)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftB_East" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(30, 15, 0)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftB_North" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(28, 15, -2)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftB_South" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(28, 15, 2)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftC_West" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(-22, 5, -10)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftC_East" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(-18, 5, -10)
+size = Vector3(1, 10, 4)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftC_North" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(-20, 5, -12)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftC_South" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(-20, 5, -8)
+size = Vector3(4, 10, 1)
+material = SubResource("StandardMaterial3D_layer2")
+use_collision = true
+
+[node name="ShaftD_West" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(-2, 10, 8)
+size = Vector3(1, 20, 4)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="ShaftD_East" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(2, 10, 8)
+size = Vector3(1, 20, 4)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="ShaftD_North" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(0, 10, 6)
+size = Vector3(4, 20, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
+
+[node name="ShaftD_South" type="CSGBox3D" parent="MazeBlockout/Shafts"]
+position = Vector3(0, 10, 10)
+size = Vector3(4, 20, 1)
+material = SubResource("StandardMaterial3D_layer3")
+use_collision = true
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
 
