@@ -3,107 +3,36 @@ extends Node3D
 const AIR_BUBBLE_SCENE := preload("res://scenes/collectibles/AirBubble.tscn")
 const JELLYFISH_SCENE := preload("res://scenes/enemies/Jellyfish.tscn")
 
-const BUBBLE_POSITIONS := [
-	Vector3(-3.0, 1.2, -2.0),
-	Vector3(-1.0, 1.5, 1.5),
-	Vector3(1.5, 1.3, -1.0),
-	Vector3(3.0, 1.4, 2.0),
-	Vector3(-7.0, 1.2, 0.0),
-	Vector3(-10.0, 1.2, 0.0),
-	Vector3(-13.0, 1.3, 0.0),
-	Vector3(-16.0, 1.2, 0.0),
-	Vector3(-11.5, 1.3, -15.5),
-	Vector3(-9.0, 1.2, -13.5),
-	Vector3(-8.0, 1.4, -16.0),
-	Vector3(-11.0, 1.2, -12.0),
-	Vector3(8.0, 1.2, 0.0),
-	Vector3(12.0, 1.3, 0.0),
-	Vector3(16.0, 1.2, 0.0),
-	Vector3(21.0, 1.2, -7.0),
-	Vector3(22.5, 1.3, -5.5),
-	Vector3(23.0, 1.2, -7.5),
-	Vector3(20.0, 1.5, 6.0),
-	Vector3(20.0, 3.5, 6.0),
-	Vector3(20.0, 5.5, 6.0),
-	Vector3(20.0, 7.5, 6.0),
-	Vector3(20.0, 9.5, 6.0),
-	Vector3(-6.0, 11.2, -6.0),
-	Vector3(0.0, 11.3, -7.0),
-	Vector3(6.0, 11.1, -5.5),
-	Vector3(-6.5, 11.4, 5.5),
-	Vector3(0.0, 11.2, 6.5),
-	Vector3(6.0, 11.3, 5.0),
-	Vector3(-14.0, 11.2, 0.0),
-	Vector3(-18.0, 11.2, 0.0),
-	Vector3(-25.0, 11.2, -1.5),
-	Vector3(-23.0, 11.3, 0.0),
-	Vector3(-25.5, 11.1, 1.5),
-	Vector3(12.0, 11.2, 0.0),
-	Vector3(17.0, 11.2, 0.0),
-	Vector3(22.0, 11.2, 0.0),
-	Vector3(25.0, 11.3, 0.0),
-	Vector3(28.0, 11.5, 0.0),
-	Vector3(28.0, 13.5, 0.0),
-	Vector3(28.0, 15.5, 0.0),
-	Vector3(28.0, 17.5, 0.0),
-	Vector3(-20.0, 8.5, -10.0),
-	Vector3(-20.0, 5.5, -10.0),
-	Vector3(-20.0, 2.5, -10.0),
-	Vector3(29.0, 21.2, -1.0),
-	Vector3(30.5, 21.2, 1.0),
-	Vector3(24.0, 21.1, 0.0),
-	Vector3(21.0, 21.2, 0.0),
-	Vector3(18.0, 21.1, 0.0),
-	Vector3(15.0, 21.2, 0.0),
-	Vector3(12.0, 21.3, 0.0),
-	Vector3(9.0, 21.2, 0.0),
-	Vector3(-1.0, 21.2, -2.0),
-	Vector3(4.0, 21.3, -2.0),
-	Vector3(-1.0, 21.2, 2.0),
-	Vector3(4.0, 21.1, 2.5),
-	Vector3(2.0, 21.2, -8.0),
-	Vector3(2.0, 21.2, -12.0),
-	Vector3(1.0, 21.2, -17.0),
-	Vector3(2.5, 21.3, -18.5),
-	Vector3(3.5, 21.2, -16.5),
-	Vector3(0.0, 18.0, 8.0),
-	Vector3(0.0, 15.0, 8.0),
-	Vector3(0.0, 12.0, 8.0),
-	Vector3(0.0, 9.0, 8.0),
-	Vector3(0.0, 6.0, 8.0),
-	Vector3(0.0, 3.0, 8.0)
-]
-
-const JELLYFISH_SPAWNS := [
+const JELLYFISH_CONFIGS := [
 	{
-		"position": Vector3(6.0, 10.0, 2.0),
-		"wander_radius": 7.0,
-		"detection_range": 9.0,
-		"chase_speed": 4.8
+		"name": "Jellyfish_Roam",
+		"mode": 0,
+		"from": "outer_1_e",
+		"to": "outer_1_ne",
+		"progress": 2.0
 	},
 	{
-		"position": Vector3(14.0, 20.0, 0.0),
-		"wander_radius": 5.0,
-		"detection_range": 8.5,
-		"chase_speed": 4.4
+		"name": "Jellyfish_Track",
+		"mode": 1,
+		"from": "inner_1_n",
+		"to": "center_1",
+		"progress": 1.0
 	}
 ]
 
 @onready var player: CharacterBody3D = $Player
 @onready var hud = $HUD
-@onready var minimap_viewport: SubViewport = $MiniMapViewport
 @onready var minimap_rig = $MiniMapRig
+@onready var minimap_viewport: SubViewport = $MiniMapViewport
+@onready var route_network = $MazeBlockout
 
 var is_game_over: bool = false
 
 func _ready() -> void:
-	minimap_viewport.size = Vector2i(400, 400)
-	minimap_viewport.transparent_bg = true
-	minimap_viewport.handle_input_locally = false
-	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	minimap_viewport.world_3d = get_viewport().world_3d
+	var spawned_entities: Dictionary = _spawn_route_entities()
 	hud.set_minimap_texture(minimap_viewport.get_texture())
-	_spawn_test_entities()
+	hud.set_player(player)
+	minimap_rig.set_player(player)
 
 	var player_stats = player.get_node("PlayerStats")
 	player_stats.oxygen_changed.connect(hud.set_oxygen)
@@ -120,19 +49,28 @@ func _on_player_oxygen_depleted() -> void:
 	await get_tree().create_timer(2.0).timeout
 	get_tree().reload_current_scene()
 
-func _spawn_test_entities() -> void:
-	for index in range(BUBBLE_POSITIONS.size()):
+func _spawn_route_entities() -> Dictionary:
+	var bubble_positions: Array = route_network.get_bubble_positions()
+	var bubbles: Array = []
+	for index in range(bubble_positions.size()):
 		var bubble := AIR_BUBBLE_SCENE.instantiate()
 		bubble.name = "Bubble_%02d" % index
-		bubble.position = BUBBLE_POSITIONS[index]
+		bubble.position = bubble_positions[index] + Vector3.UP * 0.18
 		add_child(bubble)
+		bubbles.append(bubble)
 
-	for index in range(JELLYFISH_SPAWNS.size()):
-		var config: Dictionary = JELLYFISH_SPAWNS[index]
-		var jellyfish := JELLYFISH_SCENE.instantiate()
-		jellyfish.name = "Jellyfish_%02d" % index
-		jellyfish.position = config["position"]
-		jellyfish.wander_radius = config["wander_radius"]
-		jellyfish.detection_range = config["detection_range"]
-		jellyfish.chase_speed = config["chase_speed"]
+	var jellyfish_nodes: Array = []
+	for config in JELLYFISH_CONFIGS:
+		var jellyfish: Node3D = JELLYFISH_SCENE.instantiate()
+		jellyfish.name = config["name"]
+		jellyfish.set("ai_mode", config["mode"])
+		jellyfish.set("start_from_node", config["from"])
+		jellyfish.set("start_to_node", config["to"])
+		jellyfish.set("start_progress", config["progress"])
 		add_child(jellyfish)
+		jellyfish_nodes.append(jellyfish)
+
+	return {
+		"bubbles": bubbles,
+		"jellyfish": jellyfish_nodes
+	}

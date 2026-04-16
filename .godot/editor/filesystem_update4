@@ -1,3 +1,9 @@
 res://scripts/player/player_controller.gd
 res://scripts/systems/main.gd
 res://scripts/ui/hud.gd
+res://scripts/enemies/jellyfish.gd
+res://scripts/systems/player_stats.gd
+res://scripts/ui/minimap_controller.gd
+res://scripts/systems/route_network.gd
+res://scenes/collectibles/AirBubble.tscn
+res://scenes/enemies/Jellyfish.tscn

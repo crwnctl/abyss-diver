@@ -1,39 +1,43 @@
 extends CharacterBody3D
 
-enum State {
-	WANDER,
-	CHASE,
-	COOLDOWN
+enum AiMode {
+	ROAM,
+	TRACK
 }
 
-@export var detection_range: float = 8.0
-@export var wander_radius: float = 5.0
-@export var wander_speed: float = 1.8
-@export var chase_speed: float = 4.6
-@export var steering: float = 5.0
-@export var contact_oxygen_damage: float = 20.0
-@export var hit_cooldown: float = 1.2
+@export var ai_mode: AiMode = AiMode.ROAM
+@export var roam_speed: float = 2.2
+@export var track_speed: float = 3.8
 @export var visual_bob_height: float = 0.18
 @export var visual_bob_speed: float = 2.1
 @export var visual_sway_amount: float = 0.12
 @export var visual_sway_speed: float = 1.5
+@export var start_from_node: String = "outer_1_e"
+@export var start_to_node: String = "outer_1_ne"
+@export var start_progress: float = 0.0
 
 @onready var hit_area: Area3D = $HitArea
 @onready var visual_mesh: Node3D = $MeshInstance3D
 
-var state: State = State.WANDER
-var spawn_origin: Vector3
-var wander_target: Vector3
-var cooldown_left: float = 0.0
 var player: Node3D
-var can_hit: bool = true
 var visual_time: float = 0.0
+var route_network
+var current_node_id: String = ""
+var next_node_id: String = ""
+var segment_distance: float = 0.0
+var current_move_direction: Vector3 = Vector3.FORWARD
 
 func _ready() -> void:
 	randomize()
-	spawn_origin = global_position
-	wander_target = _pick_wander_target()
 	player = get_tree().get_first_node_in_group("player") as Node3D
+	route_network = get_tree().get_first_node_in_group("route_network")
+	if route_network == null:
+		await get_tree().process_frame
+		route_network = get_tree().get_first_node_in_group("route_network")
+	current_node_id = start_from_node
+	next_node_id = start_to_node
+	segment_distance = start_progress
+	_update_route_transform()
 
 func _physics_process(delta: float) -> void:
 	visual_time += delta
@@ -43,50 +47,59 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		player = get_tree().get_first_node_in_group("player") as Node3D
 
-	if state == State.COOLDOWN:
-		cooldown_left -= delta
-		velocity = velocity.lerp(Vector3.ZERO, steering * delta)
-		move_and_slide()
-		if cooldown_left <= 0.0:
-			state = State.WANDER
-			can_hit = true
+	if route_network == null or current_node_id == "" or next_node_id == "":
 		return
 
-	var move_target := wander_target
-	var target_speed := wander_speed
-
-	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= detection_range:
-		state = State.CHASE
-		move_target = player.global_position
-		target_speed = chase_speed
-	else:
-		state = State.WANDER
-		if global_position.distance_to(wander_target) < 0.8:
-			wander_target = _pick_wander_target()
-
-	var desired_velocity := (move_target - global_position).normalized() * target_speed
-	velocity = velocity.lerp(desired_velocity, steering * delta)
-	move_and_slide()
-
+	var speed := track_speed if ai_mode == AiMode.TRACK else roam_speed
+	_advance_along_route(delta, speed)
 	_try_contact_damage()
 
 func _try_contact_damage() -> void:
-	if not can_hit:
-		return
-
 	for body in hit_area.get_overlapping_bodies():
 		if body.is_in_group("player") and body.has_node("PlayerStats"):
-			var stats := body.get_node("PlayerStats")
-			stats.consume_oxygen(contact_oxygen_damage)
-			can_hit = false
-			state = State.COOLDOWN
-			cooldown_left = hit_cooldown
+			var stats: Node = body.get_node("PlayerStats")
+			stats.kill()
 			break
 
-func _pick_wander_target() -> Vector3:
-	var random_offset := Vector3(
-		randf_range(-wander_radius, wander_radius),
-		randf_range(-1.2, 1.2),
-		randf_range(-wander_radius, wander_radius)
-	)
-	return spawn_origin + random_offset
+func _advance_along_route(delta: float, speed: float) -> void:
+	var remaining_distance: float = speed * delta
+	while remaining_distance > 0.0:
+		var segment_length: float = route_network.get_segment_length(current_node_id, next_node_id)
+		if segment_length <= 0.0:
+			return
+
+		var step: float = min(remaining_distance, segment_length - segment_distance)
+		segment_distance += step
+		remaining_distance -= step
+
+		if segment_distance >= segment_length - 0.001:
+			var reached_node: String = next_node_id
+			var previous_node: String = current_node_id
+			current_node_id = reached_node
+			if ai_mode == AiMode.TRACK and is_instance_valid(player):
+				next_node_id = route_network.pick_neighbor_toward_target(previous_node, reached_node, player.global_position)
+			else:
+				next_node_id = route_network.pick_random_neighbor(previous_node, reached_node)
+			segment_distance = 0.0
+			if next_node_id == "":
+				next_node_id = previous_node
+
+	_update_route_transform()
+
+func _update_route_transform() -> void:
+	if route_network == null or current_node_id == "" or next_node_id == "":
+		return
+
+	var start: Vector3 = route_network.get_junction_position(current_node_id)
+	var end: Vector3 = route_network.get_junction_position(next_node_id)
+	var segment_length: float = start.distance_to(end)
+	if segment_length <= 0.0:
+		return
+
+	var alpha: float = clamp(segment_distance / segment_length, 0.0, 1.0)
+	global_position = start.lerp(end, alpha)
+	current_move_direction = (end - start).normalized()
+	var up_hint: Vector3 = Vector3.UP
+	if absf(current_move_direction.dot(Vector3.UP)) > 0.95:
+		up_hint = Vector3.FORWARD
+	look_at(global_position + current_move_direction, up_hint)

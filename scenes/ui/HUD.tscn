@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://hud_scene"]
+[gd_scene load_steps=3 format=3 uid="uid://hud_scene"]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/junction_indicator_overlay.gd" id="2_junction_overlay"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -37,24 +38,36 @@ theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
 [node name="MiniMapPanel" type="Panel" parent="."]
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -320.0
+offset_left = -292.0
 offset_top = 20.0
 offset_right = -20.0
-offset_bottom = 320.0
+offset_bottom = 292.0
 
-[node name="MiniMapTextureRect" type="TextureRect" parent="MiniMapPanel"]
+[node name="MiniMapTexture" type="TextureRect" parent="MiniMapPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = -8.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="JunctionIndicatorOverlay" type="Control" parent="."]
+script = ExtResource("2_junction_overlay")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15

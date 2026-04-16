@@ -30,3 +30,6 @@ func restore_oxygen(amount: float) -> void:
 	if oxygen > 0.0:
 		is_depleted = false
 	oxygen_changed.emit(oxygen, max_oxygen)
+
+func kill() -> void:
+	consume_oxygen(max_oxygen)

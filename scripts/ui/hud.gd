@@ -7,10 +7,12 @@ extends CanvasLayer
 @onready var low_oxygen_label: Label = $MarginContainer/VBoxContainer/LowOxygenLabel
 @onready var oxygen_depleted_label: Label = $CenterContainer/OxygenDepletedLabel
 @onready var minimap_panel: Panel = $MiniMapPanel
-@onready var minimap_texture_rect: TextureRect = $MiniMapPanel/MiniMapTextureRect
+@onready var minimap_texture: TextureRect = $MiniMapPanel/MiniMapTexture
+@onready var junction_overlay: Control = $JunctionIndicatorOverlay
 
 var low_oxygen_active: bool = false
 var warning_time: float = 0.0
+var tracked_player: Node = null
 
 func _ready() -> void:
 	_set_mouse_ignore(self)
@@ -28,6 +30,9 @@ func _process(delta: float) -> void:
 		oxygen_label.modulate = Color(1, 1, 1, 1)
 		low_oxygen_label.visible = false
 
+	if tracked_player != null and tracked_player.has_method("get_junction_indicator_state"):
+		junction_overlay.call("set_state", tracked_player.get_junction_indicator_state())
+
 func set_oxygen(current: float, max_oxygen: float) -> void:
 	oxygen_bar.max_value = max_oxygen
 	oxygen_bar.value = current
@@ -41,8 +46,14 @@ func set_oxygen(current: float, max_oxygen: float) -> void:
 func show_out_of_oxygen() -> void:
 	oxygen_depleted_label.visible = true
 
+func set_minimap_references(route_network_node, player: Node3D, bubbles: Array, jellyfish: Array) -> void:
+	pass
+
 func set_minimap_texture(texture: Texture2D) -> void:
-	minimap_texture_rect.texture = texture
+	minimap_texture.texture = texture
+
+func set_player(player: Node) -> void:
+	tracked_player = player
 
 func _configure_minimap_panel() -> void:
 	var style := StyleBoxFlat.new()
