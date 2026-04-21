@@ -7,6 +7,9 @@
 radius = 0.35
 height = 1.2
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_player_sensor"]
+radius = 1.05
+
 [node name="Player" type="CharacterBody3D"]
 groups=["player"]
 script = ExtResource("1_script")
@@ -19,6 +22,15 @@ current = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_player")
+
+[node name="PlayerSensor" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)
+monitoring = true
+monitorable = true
+groups=["player_sensor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PlayerSensor"]
+shape = SubResource("SphereShape3D_player_sensor")
 
 [node name="RayCast3D" type="RayCast3D" parent="."]
 target_position = Vector3(0, 0, -3)

@@ -7,10 +7,13 @@ extends CharacterBody3D
 @export var look_pitch_limit_degrees: float = 80.0
 @export var turn_smoothing_speed: float = 5.5
 @export var junction_decision_distance: float = 5.0
+@export var turn_camera_center_speed: float = 6.5
+@export var turn_camera_pitch_center_speed: float = 4.8
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
 @onready var player_stats = $PlayerStats
+@onready var player_sensor: Area3D = $PlayerSensor
 
 var mouse_delta: Vector2 = Vector2.ZERO
 var head_yaw: float = 0.0
@@ -24,6 +27,9 @@ var available_turn_options: Dictionary = {}
 var selected_turn_label: String = ""
 var junction_approach_ratio: float = 0.0
 var tracked_junction_id: String = ""
+var recenter_camera_after_turn: bool = false
+var target_head_yaw: float = 0.0
+var target_head_pitch: float = 0.0
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -55,6 +61,8 @@ func _physics_process(delta: float) -> void:
 		current_speed = boost_speed
 	_advance_along_route(delta, current_speed)
 	_apply_route_orientation(delta)
+	_apply_turn_camera_recentering(delta)
+	_process_player_overlaps()
 	_refresh_junction_preview()
 
 func _apply_mouse_look() -> void:
@@ -67,6 +75,8 @@ func _apply_mouse_look() -> void:
 
 	head_yaw = clamp(head_yaw - mouse_delta.x * mouse_sensitivity, deg_to_rad(-look_yaw_limit_degrees), deg_to_rad(look_yaw_limit_degrees))
 	head_pitch = clamp(head_pitch - mouse_delta.y * mouse_sensitivity, deg_to_rad(-look_pitch_limit_degrees), deg_to_rad(look_pitch_limit_degrees))
+	target_head_yaw = head_yaw
+	target_head_pitch = head_pitch
 	head.rotation = Vector3(head_pitch, head_yaw, 0.0)
 	mouse_delta = Vector2.ZERO
 
@@ -80,6 +90,8 @@ func _initialize_route_state() -> void:
 	segment_distance = float(start_edge.get("progress", 0.0))
 	_update_route_transform()
 	_snap_route_orientation()
+	target_head_yaw = head_yaw
+	target_head_pitch = head_pitch
 	_refresh_junction_preview()
 
 func _advance_along_route(delta: float, speed: float) -> void:
@@ -101,6 +113,7 @@ func _advance_along_route(delta: float, speed: float) -> void:
 			var previous_node: String = current_node_id
 			current_node_id = reached_node
 			next_node_id = _choose_next_route(previous_node, reached_node)
+			_begin_turn_camera_recentering()
 			segment_distance = 0.0
 			if next_node_id == "":
 				next_node_id = previous_node
@@ -156,6 +169,25 @@ func _apply_route_orientation(delta: float) -> void:
 	var blend_weight: float = min(1.0, turn_smoothing_speed * delta)
 	global_transform = Transform3D(Basis(current_quaternion.slerp(target_quaternion, blend_weight)).orthonormalized(), global_position)
 	head.rotation = Vector3(head_pitch, head_yaw, 0.0)
+
+func _begin_turn_camera_recentering() -> void:
+	recenter_camera_after_turn = true
+	target_head_yaw = 0.0
+	target_head_pitch = 0.0
+
+func _apply_turn_camera_recentering(delta: float) -> void:
+	if not recenter_camera_after_turn:
+		return
+
+	var yaw_step: float = turn_camera_center_speed * delta
+	var pitch_step: float = turn_camera_pitch_center_speed * delta
+	head_yaw = move_toward(head_yaw, target_head_yaw, yaw_step)
+	head_pitch = move_toward(head_pitch, target_head_pitch, pitch_step)
+	head.rotation = Vector3(head_pitch, head_yaw, 0.0)
+	if absf(head_yaw - target_head_yaw) <= 0.01 and absf(head_pitch - target_head_pitch) <= 0.01:
+		head_yaw = target_head_yaw
+		head_pitch = target_head_pitch
+		recenter_camera_after_turn = false
 
 func _snap_route_orientation() -> void:
 	if current_move_direction.length_squared() <= 0.001:
@@ -262,6 +294,17 @@ func _clear_junction_preview() -> void:
 	selected_turn_label = ""
 	junction_approach_ratio = 0.0
 	tracked_junction_id = ""
+
+func _process_player_overlaps() -> void:
+	for area in player_sensor.get_overlapping_areas():
+		if area.is_in_group("relic") and area.has_method("collect_from_player"):
+			area.call("collect_from_player")
+		elif area.is_in_group("enemy") and area.has_method("damage_player"):
+			area.call("damage_player", self)
+
+	for body in player_sensor.get_overlapping_bodies():
+		if body.is_in_group("jellyfish") and body.has_method("damage_player"):
+			body.call("damage_player", self)
 
 func _update_route_transform() -> void:
 	if route_network == null or current_node_id == "" or next_node_id == "":

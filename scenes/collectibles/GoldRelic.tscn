@@ -20,6 +20,7 @@ roughness = 0.16
 [node name="GoldRelic" type="Area3D"]
 groups=["relic"]
 monitoring = true
+monitorable = true
 script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

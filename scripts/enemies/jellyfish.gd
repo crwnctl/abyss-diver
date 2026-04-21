@@ -15,12 +15,13 @@ enum AiMode {
 @export var visual_sway_speed: float = 1.5
 @export var ambush_offset_distance: float = 6.0
 @export var hit_radius: float = 1.05
+@export var model_path: String = "res://assets/models/jellyfish.stl"
 @export var start_from_node: String = "outer_1_e"
 @export var start_to_node: String = "outer_1_ne"
 @export var start_progress: float = 0.0
 
 @onready var hit_area: Area3D = $HitArea
-@onready var visual_mesh: Node3D = $MeshInstance3D
+@onready var visual_mesh: MeshInstance3D = $MeshInstance3D
 
 var player: Node3D
 var visual_time: float = 0.0
@@ -34,10 +35,12 @@ func _ready() -> void:
 	randomize()
 	player = get_tree().get_first_node_in_group("player") as Node3D
 	hit_area.body_entered.connect(_on_hit_area_body_entered)
+	hit_area.area_entered.connect(_on_hit_area_area_entered)
 	route_network = get_tree().get_first_node_in_group("route_network")
 	if route_network == null:
 		await get_tree().process_frame
 		route_network = get_tree().get_first_node_in_group("route_network")
+	_load_visual_mesh()
 	current_node_id = start_from_node
 	next_node_id = start_to_node
 	segment_distance = start_progress
@@ -71,10 +74,64 @@ func _on_hit_area_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		_damage_player(body)
 
+func _on_hit_area_area_entered(area: Area3D) -> void:
+	if area.is_in_group("player_sensor"):
+		var owner: Node = area.get_parent()
+		if owner != null:
+			_damage_player(owner)
+
 func _damage_player(body: Node) -> void:
 	if body.has_node("PlayerStats"):
 		var stats: Node = body.get_node("PlayerStats")
 		stats.kill()
+
+func damage_player(body: Node) -> void:
+	_damage_player(body)
+
+func _load_visual_mesh() -> void:
+	var mesh: ArrayMesh = _load_binary_stl_mesh(model_path)
+	if mesh != null:
+		visual_mesh.mesh = mesh
+		visual_mesh.scale = Vector3.ONE * 1.2
+
+func _load_binary_stl_mesh(path: String) -> ArrayMesh:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+
+	if file.get_length() < 84:
+		return null
+
+	file.get_buffer(80)
+	var triangle_count: int = file.get_32()
+	if triangle_count <= 0:
+		return null
+
+	var vertices: PackedVector3Array = PackedVector3Array()
+	var normals: PackedVector3Array = PackedVector3Array()
+	var indices: PackedInt32Array = PackedInt32Array()
+	vertices.resize(triangle_count * 3)
+	normals.resize(triangle_count * 3)
+	indices.resize(triangle_count * 3)
+
+	for triangle_index in range(triangle_count):
+		var normal: Vector3 = Vector3(file.get_float(), file.get_float(), file.get_float())
+		for vertex_offset in range(3):
+			var write_index: int = triangle_index * 3 + vertex_offset
+			vertices[write_index] = Vector3(file.get_float(), file.get_float(), file.get_float())
+			normals[write_index] = normal
+			indices[write_index] = write_index
+		file.get_16()
+
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_INDEX] = indices
+
+	var mesh: ArrayMesh = ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 func _advance_along_route(delta: float, speed: float) -> void:
 	var remaining_distance: float = speed * delta

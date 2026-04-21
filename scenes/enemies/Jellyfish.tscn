@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://jellyfish_scene"]
+[gd_scene load_steps=4 format=3 uid="uid://jellyfish_scene"]
 
 [ext_resource type="Script" path="res://scripts/enemies/jellyfish.gd" id="1_script"]
 
@@ -26,12 +26,13 @@ shape = SubResource("SphereShape3D_body")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 layers = 3
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 0, 0)
 mesh = SubResource("SphereMesh_body")
 surface_material_override/0 = SubResource("StandardMaterial3D_jelly")
 
 [node name="HitArea" type="Area3D" parent="."]
 monitoring = true
-monitorable = false
+monitorable = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HitArea"]
 shape = SubResource("SphereShape3D_body")

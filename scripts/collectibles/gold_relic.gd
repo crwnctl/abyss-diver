@@ -14,6 +14,7 @@ var is_collected: bool = false
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	area_entered.connect(_on_area_entered)
 	start_y = global_position.y
 	player = get_tree().get_first_node_in_group("player") as Node3D
 
@@ -32,9 +33,16 @@ func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		_collect()
 
+func _on_area_entered(area: Area3D) -> void:
+	if area.is_in_group("player_sensor"):
+		_collect()
+
 func _collect() -> void:
 	if is_collected:
 		return
 	is_collected = true
 	collected.emit(self)
 	queue_free()
+
+func collect_from_player() -> void:
+	_collect()
